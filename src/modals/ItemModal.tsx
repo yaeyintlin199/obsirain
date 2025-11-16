@@ -162,6 +162,9 @@ export class ItemModal extends Modal {
       }
 
       const now = new Date().toISOString();
+      // Simple logic to derive collectionTitle from folder path for new items
+      const collectionTitle = folder.split('/').pop() || folder;
+      
       const item: Item = {
         id: this.item?.id || `item-${Date.now()}`,
         title,
@@ -169,6 +172,8 @@ export class ItemModal extends Modal {
         description,
         tags,
         folder,
+        collectionId: this.item?.collectionId || `col-${Date.now()}`, // Generate a simple ID for new items
+        collectionTitle: this.item?.collectionTitle || collectionTitle,
         createdAt: this.item?.createdAt || now,
         updatedAt: now,
       };

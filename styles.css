@@ -205,6 +205,8 @@
   display: flex;
   align-items: center;
   gap: 6px;
+  /* Ensure the button itself is not the full width of the sidebar */
+  max-width: 100%;
 }
 
 .item-folder-tree-button:hover {
@@ -227,6 +229,27 @@
 
 .item-folder-tree-icon {
   font-size: 14px;
+  /* Use a fixed width for the icon to keep the tree aligned */
+  width: 16px;
+  text-align: center;
+}
+
+.item-folder-tree-collapse-icon {
+  font-size: 10px;
+  width: 12px;
+  text-align: center;
+  margin-right: 4px;
+  color: var(--text-muted);
+  transition: transform 0.1s;
+}
+
+.item-folder-tree-collapse-icon.is-expanded {
+  transform: rotate(90deg);
+}
+
+.item-folder-tree-button {
+  /* Adjust gap to account for the new collapse icon */
+  gap: 4px;
 }
 
 .item-folder-tree-name {

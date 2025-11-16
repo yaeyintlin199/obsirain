@@ -57,15 +57,21 @@ export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
             <div className="item-detail-detail">
               <strong>Link:</strong>{' '}
               {item.link ? (
-                <a href={item.link} target="_blank" rel="noopener noreferrer">
+                <a href={item.link} target="_blank" rel="noopener noreferrer" title={item.link}>
                   {domain}
                 </a>
               ) : (
                 'N/A'
               )}
+              <div className="item-detail-sub-detail">
+                <small>ID: {item.id}</small>
+              </div>
             </div>
             <div className="item-detail-detail">
-              <strong>Collection:</strong> {item.folder}
+              <strong>Collection:</strong> {item.collectionTitle}
+              <div className="item-detail-sub-detail">
+                <small>Path: {item.folder}</small>
+              </div>
             </div>
             <div className="item-detail-detail">
               <strong>Created:</strong>{' '}

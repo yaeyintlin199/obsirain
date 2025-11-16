@@ -4,7 +4,9 @@ export interface Item {
   description: string;
   link: string;
   tags: string[];
-  folder: string;
+  folder: string; // Maps to collectionPath
+  collectionId: string;
+  collectionTitle: string;
   createdAt: string;
   updatedAt: string;
 }

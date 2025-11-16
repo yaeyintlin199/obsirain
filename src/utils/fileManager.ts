@@ -70,37 +70,42 @@ export class FileManager {
     return items;
   }
 
-	  private generateMarkdownContent(item: Item): string {
-	    const frontmatter = [
-	      '---',
-	      `id: ${item.id}`,
-	      `title: ${item.title}`,
-	      `link: ${item.link}`,
-	      `tags: [${item.tags.map(tag => `"${tag}"`).join(', ')}]`,
-	      `collectionPath: ${item.folder}`,
-	      `created: ${item.createdAt}`,
-	      `lastupdate: ${item.updatedAt}`,
-	      '---',
-	      '',
-	      `# ${item.title}`,
-	      '',
-	      `## Description`,
-	      item.description,
-	      '',
-	      `---`,
-	      `## Details`,
-	      `- **Link**: [Source](${item.link})`,
-	      `- **Collection**: ${item.folder}`,
-	      `- **Tags**: ${item.tags.join(', ')}`,
-	      `- **Created**: ${new Date(item.createdAt).toLocaleDateString()}`,
-	      `- **Updated**: ${new Date(item.updatedAt).toLocaleDateString()}`,
-	      '',
-	    ];
-	
-	    return frontmatter.join('\n');
-	  }
-	
-	  private parseMarkdownContent(content: string, filePath: string): Item | null {
+  private generateMarkdownContent(item: Item): string {
+    const tagList = item.tags.map(tag => `  - ${tag}`).join('\n');
+
+    const frontmatter = [
+      '---',
+      `id: ${item.id}`,
+      `title: "${item.title}"`,
+      `source: ${item.link}`,
+      `created: ${item.createdAt}`,
+      `lastupdate: ${item.updatedAt}`,
+      `collectionId: ${item.collectionId}`,
+      `collectionTitle: "${item.collectionTitle}"`,
+      `collectionPath: "${item.folder}"`,
+      'tags:',
+      tagList,
+      '---',
+      '',
+      `# ${item.title}`,
+      '',
+      `## Description`,
+      item.description,
+      '',
+      `---`,
+      `## Details`,
+      `- **Link**: [Source](${item.link})`,
+      `- **Collection**: ${item.collectionTitle} (${item.folder})`,
+      `- **Tags**: ${item.tags.map(t => `#${t}`).join(', ')}`,
+      `- **Created**: ${new Date(item.createdAt).toLocaleDateString()}`,
+      `- **Updated**: ${new Date(item.updatedAt).toLocaleDateString()}`,
+      '',
+    ];
+
+    return frontmatter.join('\n');
+  }
+
+  private parseMarkdownContent(content: string, filePath: string): Item | null {
     const frontmatterRegex = /^---\n([\s\S]*?)\n---/;
     const match = content.match(frontmatterRegex);
 
@@ -112,50 +117,61 @@ export class FileManager {
     const lines = frontmatter.split('\n');
     const data: Record<string, string | string[]> = {};
 
+    // 1. Parse simple key: value pairs
     for (const line of lines) {
       const colonIndex = line.indexOf(':');
       if (colonIndex === -1) continue;
 
-	      const key = line.substring(0, colonIndex).trim();
-	      let value = line.substring(colonIndex + 1).trim();
-	
-	      if (key === 'tags') {
-        // Parse tags array
-        const tagsMatch = value.match(/\[(.*?)\]/);
-        if (tagsMatch) {
-          data[key] = tagsMatch[1]
-            .split(',')
-            .map(tag => tag.trim().replace(/^["']|["']$/g, ''))
-            .filter(tag => tag.length > 0);
-        } else {
-          data[key] = [];
-        }
+      const key = line.substring(0, colonIndex).trim();
+      let value = line.substring(colonIndex + 1).trim();
+
+      if (key === 'tags') {
+        // Handled separately below
+        continue;
       } else {
-        data[key] = value;
+        data[key] = value.replace(/^"|"$/g, ''); // Remove quotes from values
       }
     }
 
-	    // Validate required fields
-	    if (!data.id || !data.title) {
-	      return null;
-	    }
-	
-	    // Handle new/renamed frontmatter keys
-	    const folder = (typeof data.collectionPath === 'string' ? data.collectionPath : typeof data.folder === 'string' ? data.folder : filePath.substring(0, filePath.lastIndexOf('/')));
-	    const createdAt = typeof data.created === 'string' ? data.created : typeof data.createdAt === 'string' ? data.createdAt : new Date().toISOString();
-	    const updatedAt = typeof data.lastupdate === 'string' ? data.lastupdate : typeof data.updatedAt === 'string' ? data.updatedAt : new Date().toISOString();
-	
-	    return {
-	      id: typeof data.id === 'string' ? data.id : '',
-	      title: typeof data.title === 'string' ? data.title : '',
-	      description: typeof data.description === 'string' ? data.description : '',
-	      link: typeof data.link === 'string' ? data.link : '',
-	      tags: Array.isArray(data.tags) ? data.tags : [],
-	      folder: folder,
-	      createdAt: createdAt,
-	      updatedAt: updatedAt,
-	    };
-	  }
+    // 2. Handle YAML list tags: Look for lines starting with '- ' after 'tags:'
+    const tagsIndex = lines.findIndex(l => l.trim() === 'tags:');
+    const tags: string[] = [];
+    if (tagsIndex !== -1) {
+      for (let i = tagsIndex + 1; i < lines.length; i++) {
+        const tagLine = lines[i].trim();
+        if (tagLine.startsWith('- ')) {
+          tags.push(tagLine.substring(2).trim());
+        } else if (tagLine.includes(':')) {
+          // Stop if we hit the next frontmatter key
+          break;
+        }
+      }
+    }
+    data.tags = tags;
+
+    // Validate required fields
+    if (!data.id || !data.title) {
+      return null;
+    }
+
+    // Handle new/renamed frontmatter keys and defaults
+    const folder = (typeof data.collectionPath === 'string' ? data.collectionPath : filePath.substring(0, filePath.lastIndexOf('/')));
+    const createdAt = typeof data.created === 'string' ? data.created : new Date().toISOString();
+    const updatedAt = typeof data.lastupdate === 'string' ? data.lastupdate : new Date().toISOString();
+
+    return {
+      id: typeof data.id === 'string' ? data.id : '',
+      title: typeof data.title === 'string' ? data.title : '',
+      description: typeof data.description === 'string' ? data.description : '',
+      link: typeof data.source === 'string' ? data.source : '',
+      tags: Array.isArray(data.tags) ? data.tags : [],
+      folder: folder,
+      collectionId: typeof data.collectionId === 'string' ? data.collectionId : '',
+      collectionTitle: typeof data.collectionTitle === 'string' ? data.collectionTitle : folder.split('/').pop() || '',
+      createdAt: createdAt,
+      updatedAt: updatedAt,
+    } as Item;
+  }
 
   private async ensureFolderExists(folderPath: string): Promise<void> {
     const normalizedPath = normalizePath(folderPath);

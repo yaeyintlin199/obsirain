@@ -56,7 +56,7 @@ export const Card: React.FC<CardProps> = ({ item, onEdit, onDelete, onView }) =>
         </div>
       )}
       <div className="item-card-footer">
-        <span className="item-card-folder">📁 {item.folder}</span>
+        <span className="item-card-folder">📁 {item.collectionTitle}</span>
         <span className="item-card-date">
           {new Date(item.updatedAt).toLocaleDateString()}
         </span>

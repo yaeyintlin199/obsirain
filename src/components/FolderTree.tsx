@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 
 interface FolderTreeProps {
   folders: string[];
@@ -11,9 +11,23 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
   selectedFolder,
   onFolderSelect,
 }) => {
+  const [expandedFolders, setExpandedFolders] = useState<Set<string>>(new Set());
+
   if (folders.length === 0) {
     return null;
   }
+
+  const toggleExpand = (path: string) => {
+    setExpandedFolders(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(path)) {
+        newSet.delete(path);
+      } else {
+        newSet.add(path);
+      }
+      return newSet;
+    });
+  };
 
   // Helper function to build a hierarchical tree structure from flat paths
   const buildTree = (paths: string[]) => {
@@ -45,20 +59,40 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
       const node = treeNode[key];
       const isSelected = selectedFolder === node.path;
       const hasChildren = Object.keys(node.children).length > 0;
+      const isExpanded = expandedFolders.has(node.path);
+
+      const handleFolderClick = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (hasChildren) {
+          toggleExpand(node.path);
+        }
+        onFolderSelect(isSelected ? null : node.path);
+      };
 
       return (
         <div key={node.path} className="item-folder-tree-item">
           <button
             className={`item-folder-tree-button ${isSelected ? 'active' : ''}`}
             style={{ paddingLeft: `${level * 16 + 8}px` }}
-            onClick={() => onFolderSelect(isSelected ? null : node.path)}
+            onClick={handleFolderClick}
           >
+            {hasChildren && (
+              <span
+                className={`item-folder-tree-collapse-icon ${isExpanded ? 'is-expanded' : ''}`}
+                onClick={e => {
+                  e.stopPropagation();
+                  toggleExpand(node.path);
+                }}
+              >
+                {isExpanded ? '▼' : '►'}
+              </span>
+            )}
             <span className="item-folder-tree-icon">
-              {hasChildren ? '📁' : '📂'}
+              {hasChildren ? (isExpanded ? '📂' : '📁') : '📄'}
             </span>
             <span className="item-folder-tree-name">{key}</span>
           </button>
-          {hasChildren && (
+          {hasChildren && isExpanded && (
             <div className="item-folder-tree-children">
               {renderFolder(node.children, level + 1)}
             </div>
