@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
-import { Item } from '../types';
+import { Item, TreeNode } from '../types';
 import { Card } from './Card';
-import { ItemDetailView } from './ItemDetailView';
 import { Search } from './Search';
 import { TagFilter } from './TagFilter';
 import { FolderTree } from './FolderTree';
@@ -9,48 +8,34 @@ import { AddButton } from './AddButton';
 
 interface DashboardProps {
   items: Array<{ item: Item; path: string }>;
-  folders: string[];
+  tree: TreeNode[];
   allTags: string[];
   onAdd: () => void;
   onEdit: (item: Item, path: string) => void;
   onDelete: (item: Item, path: string) => void;
   onRefresh: () => void;
+  onView: (item: Item, path: string) => void;
 }
 
 export const Dashboard: React.FC<DashboardProps> = ({
   items,
-  folders,
+  tree,
   allTags,
   onAdd,
   onEdit,
   onDelete,
   onRefresh,
+  onView,
 }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
   const [selectedFolder, setSelectedFolder] = useState<string | null>(null);
-  const [viewingItem, setViewingItem] = useState<{ item: Item; path: string } | null>(null);
 
+  // The plugin's main.tsx will handle opening the detail view in a new tab
   const handleViewItem = (item: Item, path: string) => {
-    setViewingItem({ item, path });
-  };
-
-  const handleCloseView = () => {
-    setViewingItem(null);
-  };
-
-  const handleEditFromView = (item: Item) => {
-    if (viewingItem) {
-      onEdit(item, viewingItem.path);
-      setViewingItem(null); // Close view after opening modal
-    }
-  };
-
-  const handleDeleteFromView = (item: Item) => {
-    if (viewingItem) {
-      onDelete(item, viewingItem.path);
-      setViewingItem(null); // Close view after deletion
-    }
+    // This function is now passed down from ItemView and calls plugin.openItemDetailView
+    // The ItemView will pass a prop to handle this
+    // For now, we'll assume the prop is passed down correctly
   };
 
   const handleTagToggle = (tag: string) => {
@@ -67,16 +52,7 @@ export const Dashboard: React.FC<DashboardProps> = ({
     setSelectedFolder(folder);
   };
 
-  if (viewingItem) {
-    return (
-      <ItemDetailView
-        item={viewingItem.item}
-        onClose={handleCloseView}
-        onEdit={handleEditFromView}
-        onDelete={handleDeleteFromView}
-      />
-    );
-  }
+  // The ItemDetailView component is now a separate view/tab, so we remove this block.
 
   // Filter items
   const filteredItems = items.filter(({ item }) => {
@@ -125,9 +101,16 @@ export const Dashboard: React.FC<DashboardProps> = ({
               onClearAll={handleClearTags}
             />
             <FolderTree
-              folders={folders}
+              tree={tree}
               selectedFolder={selectedFolder}
               onFolderSelect={handleFolderSelect}
+              onItemSelect={(path) => {
+                // Find the item and open the detail view
+                const itemData = items.find(i => i.path === path);
+                if (itemData) {
+                  onView(itemData.item, itemData.path);
+                }
+              }}
             />
           </div>
         </div>
@@ -154,7 +137,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
               item={item}
               onEdit={item => onEdit(item, path)}
               onDelete={item => onDelete(item, path)}
-              onView={item => handleViewItem(item, path)}
+              onView={onView}
+              path={path}
             />
           ))
         )}

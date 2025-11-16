@@ -1,5 +1,5 @@
 import { App, TFile, TFolder, normalizePath } from 'obsidian';
-import { Item } from '../types';
+import { Item, TreeNode } from '../types';
 
 export class FileManager {
   constructor(private app: App) {}
@@ -187,6 +187,86 @@ export class FileManager {
     return name.replace(/[\\/:*?"<>|]/g, '-').trim();
   }
 
+  async getHierarchicalTree(): Promise<TreeNode[]> {
+    const items = await this.getAllItems();
+    const tree: Record<string, TreeNode> = {};
+
+    // Helper to get or create a folder node
+    const getOrCreateFolder = (path: string): TreeNode => {
+      if (tree[path]) return tree[path];
+
+      const parts = path.split('/');
+      const name = parts.pop() || '';
+      const parentPath = parts.join('/');
+
+      const node: TreeNode = {
+        name,
+        path,
+        type: 'folder',
+        children: [],
+      };
+      tree[path] = node;
+
+      if (parentPath) {
+        const parentNode = getOrCreateFolder(parentPath);
+        if (parentNode.children) {
+          parentNode.children.push(node);
+        }
+      }
+      return node;
+    };
+
+    // 1. Add all folders from the vault
+    const allAbstractFiles = this.app.vault.getAllLoadedFiles();
+    for (const abstractFile of allAbstractFiles) {
+      if (abstractFile instanceof TFolder) {
+        getOrCreateFolder(abstractFile.path);
+      }
+    }
+
+    // 2. Add all items
+    for (const { item, path } of items) {
+      const folderPath = item.folder;
+      const folderNode = getOrCreateFolder(folderPath);
+
+      const itemNode: TreeNode = {
+        name: item.title,
+        path: path,
+        type: 'item',
+        item: item,
+      };
+
+      if (folderNode.children) {
+        folderNode.children.push(itemNode);
+      }
+    }
+
+    // 3. Filter for root nodes (nodes without a parent in the tree)
+    const rootNodes = Object.values(tree).filter(node => {
+      const parentPath = node.path.substring(0, node.path.lastIndexOf('/'));
+      return !parentPath || !tree[parentPath];
+    });
+
+    // 4. Sort children (folders first, then items)
+    const sortTree = (nodes: TreeNode[]) => {
+      nodes.sort((a, b) => {
+        if (a.type === 'folder' && b.type === 'item') return -1;
+        if (a.type === 'item' && b.type === 'folder') return 1;
+        return a.name.localeCompare(b.name);
+      });
+      nodes.forEach(node => {
+        if (node.children) {
+          sortTree(node.children);
+        }
+      });
+    };
+
+    sortTree(rootNodes);
+
+    return rootNodes;
+  }
+
+  // Keep getFolderTree for backward compatibility in ItemModal
   async getFolderTree(): Promise<string[]> {
     const folders = new Set<string>();
     const allAbstractFiles = this.app.vault.getAllLoadedFiles();
@@ -220,5 +300,22 @@ export class FileManager {
     }
 
     return Array.from(tags).sort();
+  }
+  async getItemByPath(path: string): Promise<{ item: Item; path: string } | null> {
+    const file = this.app.vault.getAbstractFileByPath(path);
+    if (!(file instanceof TFile)) {
+      return null;
+    }
+
+    try {
+      const content = await this.app.vault.read(file);
+      const item = this.parseMarkdownContent(content, file.path);
+      if (item) {
+        return { item, path: file.path };
+      }
+    } catch (error) {
+      console.error(`Error reading file ${file.path}:`, error);
+    }
+    return null;
   }
 }

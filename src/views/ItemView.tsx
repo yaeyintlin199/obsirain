@@ -3,6 +3,7 @@ import { Root, createRoot } from 'react-dom/client';
 import React from 'react';
 import { Dashboard } from '../components/Dashboard';
 import type ItemManagerPlugin from '../main';
+import { Item } from '../types';
 
 export const VIEW_TYPE_ITEM_MANAGER = 'item-manager-view';
 
@@ -46,18 +47,19 @@ export class ItemView extends ObsidianItemView {
     if (!this.root) return;
 
     const items = await this.plugin.fileManager.getAllItems();
-    const folders = await this.plugin.fileManager.getFolderTree();
+    const tree = await this.plugin.fileManager.getHierarchicalTree();
     const allTags = await this.plugin.fileManager.getAllTags();
 
     this.root.render(
       <Dashboard
         items={items}
-        folders={folders}
+        tree={tree}
         allTags={allTags}
         onAdd={() => this.plugin.openAddModal()}
         onEdit={(item, path) => this.plugin.openEditModal(item, path)}
         onDelete={(item, path) => this.plugin.deleteItem(item, path)}
         onRefresh={() => this.render()}
+        onView={(item: Item, path: string) => this.plugin.openItemDetailView(item, path)}
       />
     );
   }

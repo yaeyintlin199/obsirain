@@ -22,3 +22,11 @@ export const DEFAULT_SETTINGS: PluginSettings = {
   predefinedTags: ['important', 'todo', 'reference', 'project'],
   enableAutoSave: true,
 };
+
+export interface TreeNode {
+  name: string;
+  path: string;
+  type: 'folder' | 'item';
+  children?: TreeNode[];
+  item?: Item; // Only present if type is 'item'
+}

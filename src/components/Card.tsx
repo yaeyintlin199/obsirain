@@ -5,14 +5,15 @@ interface CardProps {
   item: Item;
   onEdit: (item: Item) => void;
   onDelete: (item: Item) => void;
-  onView: (item: Item) => void;
+  onView: (item: Item, path: string) => void;
+  path: string;
 }
 
-export const Card: React.FC<CardProps> = ({ item, onEdit, onDelete, onView }) => {
+export const Card: React.FC<CardProps> = ({ item, onEdit, onDelete, onView, path }) => {
   const domain = item.link ? (new URL(item.link).hostname) : '';
 
   return (
-    <div className="item-card" onClick={() => onView(item)}>
+    <div className="item-card" onClick={() => onView(item, path)}>
       <div className="item-card-header">
         <h3 className="item-card-title">{item.title}</h3>
         <div className="item-card-actions">

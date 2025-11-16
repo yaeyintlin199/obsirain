@@ -4,6 +4,7 @@ import { ItemManagerSettingTab } from './settings';
 import { FileManager } from './utils/fileManager';
 import { ItemModal } from './modals/ItemModal';
 import { ItemView, VIEW_TYPE_ITEM_MANAGER } from './views/ItemView';
+import { ItemDetailView, VIEW_TYPE_ITEM_DETAIL } from './views/ItemDetailView';
 import { registerCommands } from './commands';
 
 export default class ItemManagerPlugin extends Plugin {
@@ -15,10 +16,14 @@ export default class ItemManagerPlugin extends Plugin {
 
     this.fileManager = new FileManager(this.app);
 
-    // Register view
+    // Register views
     this.registerView(
       VIEW_TYPE_ITEM_MANAGER,
       leaf => new ItemView(leaf, this)
+    );
+    this.registerView(
+      VIEW_TYPE_ITEM_DETAIL,
+      leaf => new ItemDetailView(leaf, this)
     );
 
     // Register commands
@@ -38,6 +43,7 @@ export default class ItemManagerPlugin extends Plugin {
 
   async onunload(): Promise<void> {
     this.app.workspace.detachLeavesOfType(VIEW_TYPE_ITEM_MANAGER);
+    this.app.workspace.detachLeavesOfType(VIEW_TYPE_ITEM_DETAIL);
   }
 
   async loadSettings(): Promise<void> {
@@ -71,12 +77,42 @@ export default class ItemManagerPlugin extends Plugin {
     }
   }
 
+  async openItemDetailView(item: Item, path: string): Promise<void> {
+    const { workspace } = this.app;
+    const leaf = workspace.getLeaf(true); // Open in a new tab
+
+    await leaf.setViewState({
+      type: VIEW_TYPE_ITEM_DETAIL,
+      active: true,
+    });
+
+    const view = leaf.view;
+    if (view instanceof ItemDetailView) {
+      view.setItem(item, path);
+    }
+  }
+
   async refreshView(): Promise<void> {
     const leaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_ITEM_MANAGER);
     for (const leaf of leaves) {
       const view = leaf.view;
       if (view instanceof ItemView) {
         await view.render();
+      }
+    }
+    // Also refresh any open detail views
+    const detailLeaves = this.app.workspace.getLeavesOfType(VIEW_TYPE_ITEM_DETAIL);
+    for (const leaf of detailLeaves) {
+      const view = leaf.view;
+      if (view instanceof ItemDetailView && view.item && view.path) {
+        // Re-read the item data from the vault to ensure it's up-to-date
+        const updatedItem = await this.fileManager.getItemByPath(view.path);
+        if (updatedItem) {
+          view.setItem(updatedItem.item, updatedItem.path);
+        } else {
+          // If item is deleted, close the view
+          leaf.detach();
+        }
       }
     }
   }
