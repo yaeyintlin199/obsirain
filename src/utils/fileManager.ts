@@ -1,4 +1,6 @@
 import { App, TFile, TFolder, normalizePath } from 'obsidian';
+import axios from 'axios';
+import * as cheerio from 'cheerio';
 import { Item, TreeNode } from '../types';
 
 export class FileManager {
@@ -83,11 +85,16 @@ export class FileManager {
       `collectionId: ${item.collectionId}`,
       `collectionTitle: "${item.collectionTitle}"`,
       `collectionPath: "${item.folder}"`,
+      item.collectionParentId ? `collectionParentId: ${item.collectionParentId}` : '',
+      item.banner ? `banner: ${item.banner}` : '',
+      item.type ? `type: ${item.type}` : '',
       'tags:',
       tagList,
       '---',
       '',
       `# ${item.title}`,
+      '',
+      item.banner ? `![Banner](${item.banner})` : '',
       '',
       `## Description`,
       item.description,
@@ -95,6 +102,7 @@ export class FileManager {
       `---`,
       `## Details`,
       `- **Link**: [Source](${item.link})`,
+      `- **Type**: ${item.type || 'link'}`,
       `- **Collection**: ${item.collectionTitle} (${item.folder})`,
       `- **Tags**: ${item.tags.map(t => `#${t}`).join(', ')}`,
       `- **Created**: ${new Date(item.createdAt).toLocaleDateString()}`,
@@ -168,6 +176,10 @@ export class FileManager {
       folder: folder,
       collectionId: typeof data.collectionId === 'string' ? data.collectionId : '',
       collectionTitle: typeof data.collectionTitle === 'string' ? data.collectionTitle : folder.split('/').pop() || '',
+      collectionPath: typeof data.collectionPath === 'string' ? data.collectionPath : folder,
+      collectionParentId: typeof data.collectionParentId === 'string' ? data.collectionParentId : undefined,
+      banner: typeof data.banner === 'string' ? data.banner : undefined,
+      type: typeof data.type === 'string' ? data.type : undefined,
       createdAt: createdAt,
       updatedAt: updatedAt,
     } as Item;
@@ -287,6 +299,31 @@ export class FileManager {
     }
 
     return Array.from(folders).sort();
+  }
+
+  async fetchLinkMetadata(url: string): Promise<{ title: string; description: string; banner: string }> {
+    try {
+      const response = await axios.get(url, {
+        headers: {
+          'User-Agent': 'Obsidian Item Manager Plugin',
+        },
+        timeout: 5000,
+      });
+      const $ = cheerio.load(response.data);
+
+      const title = $('meta[property="og:title"]').attr('content') || $('title').text() || '';
+      const description = $('meta[property="og:description"]').attr('content') || $('meta[name="description"]').attr('content') || '';
+      const banner = $('meta[property="og:image"]').attr('content') || $('meta[name="twitter:image"]').attr('content') || '';
+
+      return {
+        title: title.trim(),
+        description: description.trim(),
+        banner: banner.trim(),
+      };
+    } catch (error) {
+      console.error('Error fetching link metadata:', error);
+      return { title: '', description: '', banner: '' };
+    }
   }
 
   async getAllTags(): Promise<string[]> {

@@ -1,5 +1,6 @@
 import { App, Modal, Notice } from 'obsidian';
 import { Item } from '../types';
+import { v4 as uuidv4 } from 'uuid';
 import { FileManager } from '../utils/fileManager';
 
 export class ItemModal extends Modal {
@@ -50,6 +51,48 @@ export class ItemModal extends Modal {
       value: this.item?.link || '',
     });
     linkInput.addClass('item-modal-input');
+
+    const fetchMetadata = async (url: string) => {
+      if (!url || !url.startsWith('http')) return;
+
+      new Notice('Fetching link metadata...');
+      const metadata = await this.fileManager.fetchLinkMetadata(url);
+
+      if (metadata.title && !titleInput.value) {
+        titleInput.value = metadata.title;
+      }
+      if (metadata.description && !descInput.value) {
+        descInput.value = metadata.description;
+      }
+      if (metadata.banner && !bannerInput.value) {
+        bannerInput.value = metadata.banner;
+      }
+      new Notice('Metadata fetched!');
+    };
+
+    linkInput.addEventListener('change', (e) => {
+      fetchMetadata((e.target as HTMLInputElement).value);
+    });
+
+    // Banner input (hidden unless a banner is present or link is being edited)
+    const bannerContainer = contentEl.createDiv({ cls: 'item-modal-field' });
+    bannerContainer.createEl('label', { text: 'Banner URL (Optional)' });
+    const bannerInput = bannerContainer.createEl('input', {
+      type: 'url',
+      placeholder: 'Enter banner image URL',
+      value: this.item?.banner || '',
+    });
+    bannerInput.addClass('item-modal-input');
+    bannerContainer.style.display = this.item?.banner || this.item?.link ? 'flex' : 'none';
+
+    // Show banner input if link is entered
+    linkInput.addEventListener('input', () => {
+      if (linkInput.value.length > 0) {
+        bannerContainer.style.display = 'flex';
+      } else if (!this.item?.banner) {
+        bannerContainer.style.display = 'none';
+      }
+    });
 
     // Description input
     const descContainer = contentEl.createDiv({ cls: 'item-modal-field' });
@@ -135,6 +178,7 @@ export class ItemModal extends Modal {
 
       const title = titleInput.value.trim();
       const link = linkInput.value.trim();
+      const banner = bannerInput.value.trim();
       const description = descInput.value.trim();
       const folder = folderSelect.value.trim(); // Use folderSelect value
       const tags = tagsInput.value
@@ -164,16 +208,22 @@ export class ItemModal extends Modal {
       const now = new Date().toISOString();
       // Simple logic to derive collectionTitle from folder path for new items
       const collectionTitle = folder.split('/').pop() || folder;
-      
+      const collectionPath = folder;
+      const collectionParentId = folder.includes('/') ? uuidv4() : undefined; // Simple placeholder logic
+
       const item: Item = {
-        id: this.item?.id || `item-${Date.now()}`,
+        id: this.item?.id || uuidv4(),
         title,
         link,
         description,
         tags,
         folder,
-        collectionId: this.item?.collectionId || `col-${Date.now()}`, // Generate a simple ID for new items
+        collectionId: this.item?.collectionId || uuidv4(),
         collectionTitle: this.item?.collectionTitle || collectionTitle,
+        collectionPath: this.item?.collectionPath || collectionPath,
+        collectionParentId: this.item?.collectionParentId || collectionParentId,
+        banner: banner || undefined,
+        type: this.item?.type || 'link', // Default to 'link'
         createdAt: this.item?.createdAt || now,
         updatedAt: now,
       };

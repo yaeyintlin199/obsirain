@@ -4,8 +4,9 @@ import { Item } from '../types';
 interface ItemDetailViewProps {
   item: Item;
   onClose: () => void;
-  onEdit: (item: Item) => void;
-  onDelete: (item: Item) => void;
+  onEdit: (item: Item, path: string) => void;
+  onDelete: (item: Item, path: string) => void;
+  path: string;
 }
 
 export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
@@ -13,6 +14,7 @@ export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
   onClose,
   onEdit,
   onDelete,
+  path,
 }) => {
   const domain = item.link ? new URL(item.link).hostname : 'N/A';
 
@@ -23,14 +25,14 @@ export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
         <div className="item-detail-actions">
           <button
             className="item-detail-action-btn mod-cta"
-            onClick={() => onEdit(item)}
+            onClick={() => onEdit(item, path)}
             title="Edit Item"
           >
             ✏️ Edit
           </button>
           <button
             className="item-detail-action-btn mod-warning"
-            onClick={() => onDelete(item)}
+            onClick={() => onDelete(item, path)}
             title="Delete Item"
           >
             🗑️ Delete
@@ -45,6 +47,12 @@ export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
         </div>
       </div>
 
+      {item.banner && (
+        <div className="item-detail-banner-container">
+          <img src={item.banner} alt="Banner" className="item-detail-banner" />
+        </div>
+      )}
+
       <div className="item-detail-content">
         <div className="item-detail-section">
           <h2>Description</h2>
@@ -52,10 +60,10 @@ export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
         </div>
 
         <div className="item-detail-section">
-          <h2>Details</h2>
-          <div className="item-detail-details-grid">
-            <div className="item-detail-detail">
-              <strong>Link:</strong>{' '}
+          <h2>Metadata</h2>
+          <div className="item-detail-metadata-grid">
+            <div className="item-detail-metadata-item">
+              <strong>Source:</strong>{' '}
               {item.link ? (
                 <a href={item.link} target="_blank" rel="noopener noreferrer" title={item.link}>
                   {domain}
@@ -63,24 +71,32 @@ export const ItemDetailView: React.FC<ItemDetailViewProps> = ({
               ) : (
                 'N/A'
               )}
-              <div className="item-detail-sub-detail">
-                <small>ID: {item.id}</small>
-              </div>
             </div>
-            <div className="item-detail-detail">
+            <div className="item-detail-metadata-item">
+              <strong>Type:</strong> {item.type || 'N/A'}
+            </div>
+            <div className="item-detail-metadata-item">
               <strong>Collection:</strong> {item.collectionTitle}
               <div className="item-detail-sub-detail">
-                <small>Path: {item.folder}</small>
+                <small>Path: {item.collectionPath}</small>
               </div>
             </div>
-            <div className="item-detail-detail">
+            <div className="item-detail-metadata-item">
               <strong>Created:</strong>{' '}
               {new Date(item.createdAt).toLocaleDateString()}
             </div>
-            <div className="item-detail-detail">
+            <div className="item-detail-metadata-item">
               <strong>Updated:</strong>{' '}
               {new Date(item.updatedAt).toLocaleDateString()}
             </div>
+            <div className="item-detail-metadata-item">
+              <strong>ID:</strong> {item.id}
+            </div>
+            {item.collectionParentId && (
+              <div className="item-detail-metadata-item">
+                <strong>Parent ID:</strong> {item.collectionParentId}
+              </div>
+            )}
           </div>
         </div>
 

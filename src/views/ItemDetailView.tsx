@@ -66,6 +66,7 @@ export class ItemDetailView extends ObsidianItemView {
         onClose={() => this.leaf.detach()}
         onEdit={() => this.plugin.openEditModal(this.item!, this.path)}
         onDelete={() => this.plugin.deleteItem(this.item!, this.path)}
+        path={this.path}
       />
     );
   }

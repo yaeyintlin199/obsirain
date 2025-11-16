@@ -4,9 +4,13 @@ export interface Item {
   description: string;
   link: string;
   tags: string[];
-  folder: string; // Maps to collectionPath
+  folder: string; // The internal path used by Obsidian. Maps to collectionPath in frontmatter.
   collectionId: string;
   collectionTitle: string;
+  collectionPath: string; // Redundant with folder, but kept for Raindrop compatibility
+  collectionParentId?: string; // Optional for sub-collections
+  banner?: string; // URL for the banner image
+  type?: string; // e.g., 'link', 'article'
   createdAt: string;
   updatedAt: string;
 }
