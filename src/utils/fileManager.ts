@@ -1,4 +1,4 @@
-import { App, TFile, normalizePath } from 'obsidian';
+import { App, TFile, TFolder, normalizePath } from 'obsidian';
 import { Item } from '../types';
 
 export class FileManager {
@@ -156,23 +156,22 @@ export class FileManager {
     return name.replace(/[\\/:*?"<>|]/g, '-').trim();
   }
 
-  async getFolderTree(rootPath?: string): Promise<string[]> {
+  async getFolderTree(): Promise<string[]> {
     const folders = new Set<string>();
-    const files = this.app.vault.getMarkdownFiles();
+    const allAbstractFiles = this.app.vault.getAllLoadedFiles();
 
-    for (const file of files) {
-      if (rootPath && !file.path.startsWith(rootPath)) {
-        continue;
+    for (const abstractFile of allAbstractFiles) {
+      if (abstractFile instanceof TFolder) {
+        folders.add(abstractFile.path);
       }
+    }
 
+    // Also include folders from item paths in case they are not empty folders
+    const files = this.app.vault.getMarkdownFiles();
+    for (const file of files) {
       const folderPath = file.path.substring(0, file.path.lastIndexOf('/'));
       if (folderPath) {
         folders.add(folderPath);
-        // Add parent folders
-        const parts = folderPath.split('/');
-        for (let i = 1; i < parts.length; i++) {
-          folders.add(parts.slice(0, i).join('/'));
-        }
       }
     }
 

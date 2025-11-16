@@ -78,29 +78,33 @@ export const Dashboard: React.FC<DashboardProps> = ({
         </button>
       </div>
 
-      <Search value={searchQuery} onChange={setSearchQuery} />
+      <div className="item-dashboard-content">
+        <div className="item-dashboard-sidebar">
+          <Search value={searchQuery} onChange={setSearchQuery} />
 
-      <div className="item-dashboard-filters">
-        <TagFilter
-          tags={allTags}
-          selectedTags={selectedTags}
-          onTagToggle={handleTagToggle}
-          onClearAll={handleClearTags}
-        />
-        <FolderTree
-          folders={folders}
-          selectedFolder={selectedFolder}
-          onFolderSelect={handleFolderSelect}
-        />
-      </div>
+          <div className="item-dashboard-filters">
+            <TagFilter
+              tags={allTags}
+              selectedTags={selectedTags}
+              onTagToggle={handleTagToggle}
+              onClearAll={handleClearTags}
+            />
+            <FolderTree
+              folders={folders}
+              selectedFolder={selectedFolder}
+              onFolderSelect={handleFolderSelect}
+            />
+          </div>
+        </div>
 
-      <div className="item-dashboard-stats">
-        <span>
-          Showing {filteredItems.length} of {items.length} items
-        </span>
-      </div>
+        <div className="item-dashboard-main">
+          <div className="item-dashboard-stats">
+            <span>
+              Showing {filteredItems.length} of {items.length} items
+            </span>
+          </div>
 
-      <div className="item-dashboard-grid">
+          <div className="item-dashboard-grid">
         {filteredItems.length === 0 ? (
           <div className="item-dashboard-empty">
             <p>No items found</p>
@@ -118,6 +122,8 @@ export const Dashboard: React.FC<DashboardProps> = ({
             />
           ))
         )}
+          </div>
+        </div>
       </div>
 
       <AddButton onClick={onAdd} />

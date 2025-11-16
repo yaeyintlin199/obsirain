@@ -50,19 +50,36 @@ export class ItemModal extends Modal {
     });
     descInput.addClass('item-modal-textarea');
 
-    // Folder input
+    // Folder input (Dropdown)
     const folderContainer = contentEl.createDiv({ cls: 'item-modal-field' });
     folderContainer.createEl('label', { text: 'Folder' });
-    const folderInput = folderContainer.createEl('input', {
-      type: 'text',
-      placeholder: 'Enter folder path',
-      value: this.item?.folder || this.defaultFolder,
+    const folderSelect = folderContainer.createEl('select');
+    folderSelect.addClass('item-modal-input');
+
+    // Get all existing folders for the dropdown
+    this.fileManager.getFolderTree().then(folders => {
+      const currentFolder = this.item?.folder || this.defaultFolder;
+      let folderFound = false;
+
+      // Add all existing folders
+      for (const folder of folders) {
+        const option = folderSelect.createEl('option', { value: folder, text: folder });
+        if (folder === currentFolder) {
+          option.selected = true;
+          folderFound = true;
+        }
+      }
+
+      // If the current folder is new or not in the list, add it as the selected option
+      if (!folderFound && currentFolder) {
+        const option = folderSelect.createEl('option', { value: currentFolder, text: currentFolder });
+        option.selected = true;
+      }
     });
-    folderInput.addClass('item-modal-input');
 
     // Tags input
     const tagsContainer = contentEl.createDiv({ cls: 'item-modal-field' });
-    tagsContainer.createEl('label', { text: 'Tags (comma-separated)' });
+    tagsContainer.createEl('label', { text: 'Tags (comma-separated, e.g., tag1, tag2)' });
     const tagsInput = tagsContainer.createEl('input', {
       type: 'text',
       placeholder: 'Enter tags',
@@ -108,11 +125,14 @@ export class ItemModal extends Modal {
 
       const title = titleInput.value.trim();
       const description = descInput.value.trim();
-      const folder = folderInput.value.trim();
+      const folder = folderSelect.value.trim(); // Use folderSelect value
       const tags = tagsInput.value
         .split(',')
         .map(tag => tag.trim())
-        .filter(tag => tag.length > 0);
+        .filter(tag => tag.length > 0 && !tag.includes(' ')); // Filter out empty tags and tags with spaces
+
+      // If the folder is not in the list, we assume the user wants to create a new one.
+      // We will rely on fileManager.ensureFolderExists to handle creation.
 
       if (!title) {
         new Notice('Title is required');
@@ -121,6 +141,12 @@ export class ItemModal extends Modal {
 
       if (!folder) {
         new Notice('Folder is required');
+        return;
+      }
+
+      // Check for tags with spaces, which are invalid in Obsidian
+      if (tags.some(tag => tag.includes(' '))) {
+        new Notice('Tags cannot contain spaces. Please use hyphens or underscores.');
         return;
       }
 

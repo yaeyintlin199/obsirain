@@ -10,7 +10,8 @@
 /* Dashboard */
 .item-dashboard {
   padding: 20px;
-  max-width: 100%;
+  max-width: 1200px; /* Max width for large screens */
+  margin: 0 auto; /* Center the dashboard */
 }
 
 .item-dashboard-header {
@@ -68,6 +69,20 @@
 
 .item-search-clear:hover {
   opacity: 1;
+}
+
+/* Dashboard Layout */
+.item-dashboard-content {
+  display: flex;
+  gap: 20px;
+}
+
+.item-dashboard-sidebar {
+  flex: 0 0 250px; /* Fixed width for sidebar on large screens */
+}
+
+.item-dashboard-main {
+  flex: 1;
 }
 
 /* Filters */
@@ -201,6 +216,15 @@
   color: var(--text-on-accent);
 }
 
+/* Make folder tree look more like Obsidian's file explorer */
+.item-folder-tree-button {
+  color: var(--text-normal);
+}
+
+.item-folder-tree-button.active .item-folder-tree-icon {
+  color: var(--text-on-accent);
+}
+
 .item-folder-tree-icon {
   font-size: 14px;
 }
@@ -210,7 +234,7 @@
 }
 
 .item-folder-tree-children {
-  margin-left: 8px;
+  /* No margin-left here, indentation is handled by padding-left on the button */
 }
 
 /* Stats */
@@ -223,7 +247,8 @@
 /* Grid */
 .item-dashboard-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  /* Responsive grid: 1 column on small, 2 on medium, 3 on large */
+  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
   gap: 16px;
   margin-bottom: 80px;
 }
@@ -387,7 +412,8 @@
 }
 
 .item-modal-input,
-.item-modal-textarea {
+.item-modal-textarea,
+.item-modal-field select { /* Added select for folder dropdown */
   width: 100%;
   padding: 8px 12px;
   border: 1px solid var(--background-modifier-border);
@@ -395,6 +421,7 @@
   background: var(--background-primary);
   font-size: 14px;
   font-family: inherit;
+  color: var(--text-normal); /* Ensure text color is correct */
 }
 
 .item-modal-textarea {
@@ -476,6 +503,16 @@
 @media (max-width: 768px) {
   .item-dashboard {
     padding: 12px;
+  }
+
+  .item-dashboard-content {
+    flex-direction: column; /* Stack sidebar and main content on mobile */
+    gap: 12px;
+  }
+
+  .item-dashboard-sidebar {
+    flex: none;
+    width: 100%;
   }
 
   .item-dashboard-grid {

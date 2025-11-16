@@ -15,47 +15,57 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
     return null;
   }
 
-  // Build folder hierarchy
-  const folderTree: Record<string, string[]> = {};
-  const rootFolders = new Set<string>();
+  // Helper function to build a hierarchical tree structure from flat paths
+  const buildTree = (paths: string[]) => {
+    const tree: { [key: string]: any } = {};
 
-  for (const folder of folders) {
-    const parts = folder.split('/');
-    if (parts.length === 1) {
-      rootFolders.add(folder);
-    } else {
-      const parent = parts.slice(0, -1).join('/');
-      if (!folderTree[parent]) {
-        folderTree[parent] = [];
-      }
-      folderTree[parent].push(folder);
-    }
-  }
+    paths.forEach(path => {
+      const parts = path.split('/');
+      let current = tree;
 
-  const renderFolder = (folder: string, level = 0) => {
-    const children = folderTree[folder] || [];
-    const isSelected = selectedFolder === folder;
-    const folderName = folder.split('/').pop() || folder;
+      parts.forEach((part, index) => {
+        if (!current[part]) {
+          current[part] = {
+            path: parts.slice(0, index + 1).join('/'),
+            children: {},
+          };
+        }
+        current = current[part].children;
+      });
+    });
+    return tree;
+  };
 
-    return (
-      <div key={folder} className="item-folder-tree-item">
-        <button
-          className={`item-folder-tree-button ${isSelected ? 'active' : ''}`}
-          style={{ paddingLeft: `${level * 16 + 8}px` }}
-          onClick={() => onFolderSelect(isSelected ? null : folder)}
-        >
-          <span className="item-folder-tree-icon">
-            {children.length > 0 ? '📁' : '📄'}
-          </span>
-          <span className="item-folder-tree-name">{folderName}</span>
-        </button>
-        {children.length > 0 && (
-          <div className="item-folder-tree-children">
-            {children.map(child => renderFolder(child, level + 1))}
-          </div>
-        )}
-      </div>
-    );
+  const folderTree = buildTree(folders);
+
+  const renderFolder = (treeNode: { [key: string]: any }, level = 0) => {
+    const sortedKeys = Object.keys(treeNode).sort();
+
+    return sortedKeys.map(key => {
+      const node = treeNode[key];
+      const isSelected = selectedFolder === node.path;
+      const hasChildren = Object.keys(node.children).length > 0;
+
+      return (
+        <div key={node.path} className="item-folder-tree-item">
+          <button
+            className={`item-folder-tree-button ${isSelected ? 'active' : ''}`}
+            style={{ paddingLeft: `${level * 16 + 8}px` }}
+            onClick={() => onFolderSelect(isSelected ? null : node.path)}
+          >
+            <span className="item-folder-tree-icon">
+              {hasChildren ? '📁' : '📂'}
+            </span>
+            <span className="item-folder-tree-name">{key}</span>
+          </button>
+          {hasChildren && (
+            <div className="item-folder-tree-children">
+              {renderFolder(node.children, level + 1)}
+            </div>
+          )}
+        </div>
+      );
+    });
   };
 
   return (
@@ -72,9 +82,7 @@ export const FolderTree: React.FC<FolderTreeProps> = ({
         )}
       </div>
       <div className="item-folder-tree-list">
-        {Array.from(rootFolders)
-          .sort()
-          .map(folder => renderFolder(folder))}
+        {renderFolder(folderTree)}
       </div>
     </div>
   );
